@@ -1,0 +1,10 @@
+.venv-infer/
+.venv-vllm/
+__pycache__/
+*.py[cod]
+logs/
+outputs/
+lab3_rag/index/
+lab6_vl/samples/
+.cache/
+.env
