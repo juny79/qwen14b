@@ -8,3 +8,4 @@ lab3_rag/index/
 lab6_vl/samples/
 .cache/
 .env
+/datasets
