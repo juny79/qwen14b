@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>사내 AI Studio · 개발 MVP</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <div><span class="eyebrow">LOCAL DEVELOPMENT MVP</span><h1>사내 AI Studio</h1>
+      <p>업무 문서 도우미와 생성형 미디어 도구를 기능별로 선택해 사용합니다.</p></div>
+    <span id="health" class="badge">연결 확인 중</span>
+  </header>
+  <main>
+    <nav class="tabs" aria-label="AI 기능 선택">
+      <button class="tab active" data-panel="support">업무지원</button>
+      <button class="tab" data-panel="media">이미지 생성·수정</button>
+      <button class="tab" data-panel="video">동영상</button>
+    </nav>
+    <section id="support" class="panel active">
+      <h2>문서 근거형 업무 도우미</h2>
+      <p class="note">현재 lab3_rag의 로컬 FAISS 인덱스와 localhost vLLM을 사용합니다. 비민감 샘플로만 시험하세요.</p>
+      <form id="chat-form">
+        <label for="question">질문</label>
+        <textarea id="question" rows="4" maxlength="4000" placeholder="예: 출장 숙박비 한도를 알려줘" required></textarea>
+        <button class="primary" type="submit">질문하기</button>
+      </form>
+      <div id="chat-status" role="status"></div>
+      <article id="chat-result" class="result hidden"></article>
+    </section>
+    <section id="media" class="panel">
+      <h2>이미지 생성 및 마스크 편집</h2>
+      <p class="note">이미지 생성은 FLUX.1-schnell, 지정 영역 수정은 SDXL Inpainting을 선택합니다. 한 프로세스 안에서 GPU 작업은 한 번에 하나씩 처리합니다.</p>
+      <label for="operation">작업 선택</label>
+      <select id="operation"><option value="generate">프롬프트로 이미지 생성 · FLUX.1-schnell</option><option value="inpaint">마스크 영역 수정 · SDXL Inpainting</option></select>
+      <form id="media-form">
+        <label for="prompt">프롬프트</label>
+        <textarea id="prompt" rows="3" maxlength="2000" placeholder="원하는 이미지 또는 수정 내용을 설명하세요" required></textarea>
+        <div id="upload-fields" class="hidden">
+          <label for="source">원본 이미지 (최대 12MB)</label><input id="source" type="file" accept="image/png,image/jpeg,image/webp">
+          <label for="mask">마스크 이미지 (흰색=수정, 검정=유지)</label><input id="mask" type="file" accept="image/png,image/jpeg,image/webp">
+        </div>
+        <label for="seed">Seed</label><input id="seed" type="number" value="42" min="0" max="2147483647">
+        <button class="primary" type="submit">GPU 작업 제출</button>
+      </form>
+      <div id="media-status" role="status"></div>
+      <article id="media-result" class="result hidden"></article>
+    </section>
+    <section id="video" class="panel">
+      <h2>짧은 동영상 생성</h2>
+      <p class="note">Wan2.2-TI2V-5B로 텍스트 또는 참조 이미지에서 새 영상을 만듭니다. 기존 영상의 시간축 일관성 편집 기능은 아닙니다.</p>
+      <p id="video-readiness" class="warning">Wan2.2 로컬 저장소 설정을 확인 중입니다.</p>
+      <form id="video-form">
+        <label for="video-prompt">프롬프트</label><textarea id="video-prompt" rows="3" maxlength="2000" placeholder="장면과 움직임을 설명하세요" required></textarea>
+        <label for="video-frames">길이 (24fps)</label>
+        <select id="video-frames"><option value="49">49프레임 · 약 2초</option><option value="81">81프레임 · 약 3.4초</option><option value="121">121프레임 · 약 5초</option></select>
+        <label for="video-image">참조 이미지 (선택, 최대 12MB)</label><input id="video-image" type="file" accept="image/png,image/jpeg,image/webp">
+        <label for="video-seed">Seed</label><input id="video-seed" type="number" value="42" min="0" max="2147483647">
+        <button id="video-submit" class="primary" type="submit" disabled>GPU 작업 제출</button>
+      </form>
+      <div id="video-status" role="status"></div>
+      <article id="video-result" class="result hidden"></article>
+    </section>
+  </main>
+  <footer>개발용 · localhost 전용 · SSO/문서 ACL/운영 GPU 스케줄러 미구현 · 민감 정보 업로드 금지</footer>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>
