@@ -48,15 +48,23 @@ async function pollJob(jobId, statusId = "media-status", resultId = "media-resul
     status.textContent = `작업 ${job.id}: ${job.status}${job.error ? ` · ${job.error}` : ""}`;
     if (job.status === "succeeded") {
       result.replaceChildren();
-      const preview = job.result_name?.endsWith(".mp4") ? document.createElement("video") : document.createElement("img");
-      preview.src = `${job.result}?t=${Date.now()}`;
-      if (preview.tagName === "VIDEO") { preview.controls = true; preview.playsInline = true; }
-      else preview.alt = "생성 결과";
+      if (["result.png", "result.mp4"].includes(job.result_name)) {
+        const preview = job.result_name.endsWith(".mp4") ? document.createElement("video") : document.createElement("img");
+        preview.src = `${job.result}?t=${Date.now()}`;
+        if (preview.tagName === "VIDEO") { preview.controls = true; preview.playsInline = true; }
+        else preview.alt = "생성 결과";
+        result.append(preview);
+      } else if (["classification.json", "infer_results.json"].includes(job.result_name)) {
+        const response = await fetch(job.result);
+        const preview = document.createElement("pre");
+        preview.textContent = await response.text();
+        result.append(preview);
+      }
       const link = document.createElement("a");
       link.href = job.result;
       link.download = job.result_name || "ai-studio-result";
-      link.textContent = "결과 다운로드";
-      result.append(preview, link);
+      link.textContent = `결과 다운로드 (${job.result_name || "파일"})`;
+      result.append(link);
       result.classList.remove("hidden");
       return;
     }
@@ -101,6 +109,28 @@ $("video-form").addEventListener("submit", async (event) => {
     if (!response.ok) throw new Error(data.detail || "작업 제출 실패");
     await pollJob(data.id, "video-status", "video-result");
   } catch (error) { $("video-status").textContent = `오류: ${error.message}`; }
+});
+
+$("lab-action").addEventListener("change", () => {
+  $("lab-image-wrap").classList.toggle("hidden", $("lab-action").value !== "vl-receipt");
+  $("classify-input-wrap").classList.toggle("hidden", $("lab-action").value !== "classify");
+});
+
+$("lab-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = new FormData();
+  form.append("action", $("lab-action").value);
+  form.append("request_text", $("classify-request").value);
+  const image = $("lab-image").files[0];
+  if (image) form.append("image", image);
+  $("lab-status").textContent = "실습 작업 대기 중…";
+  $("lab-result").classList.add("hidden");
+  try {
+    const response = await fetch("/api/labs/run", {method: "POST", body: form});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "작업 제출 실패");
+    await pollJob(data.id, "lab-status", "lab-result");
+  } catch (error) { $("lab-status").textContent = `오류: ${error.message}`; }
 });
 
 async function loadFeatures() {

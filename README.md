@@ -21,7 +21,7 @@
 
 ## 웹앱 개발 시작점
 
-`apps/ai_studio/`에 로컬 개발용 AI Studio MVP를 추가했습니다. 탭에서 사내 문서 도우미, 이미지 생성, 마스크 이미지 수정을 선택할 수 있습니다. Wan2.2 동영상 기능은 실제 MIG 검증 전까지 UI에서 비활성화되어 있습니다. 설치·실행 방법과 알려진 제한은 [`apps/ai_studio/README.md`](apps/ai_studio/README.md)를 확인하세요.
+`apps/ai_studio/`에는 문서 RAG, 실습 작업(Qwen 추론·QLoRA·VL·vLLM 테스트/벤치마크), 이미지 생성·마스크 수정 및 조건부 동영상 생성을 묶은 로컬 개발 MVP가 있습니다. 실행은 `bash scripts/run_ai_studio.sh` (localhost:8080)이며, 상세 기능과 제한은 [`apps/ai_studio/README.md`](apps/ai_studio/README.md)를 확인하세요.
 
 > 이 웹앱은 개발 프로토타입입니다. SSO, 문서 ACL, 운영 GPU 스케줄링, 데이터 자동 삭제가 없으므로 `127.0.0.1`에서만 실행하고 비민감 시험 자료만 사용하세요. 실제 A100 MIG에서 아직 검증하지 않았습니다.
 

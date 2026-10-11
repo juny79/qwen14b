@@ -4,6 +4,7 @@ __pycache__/
 *.py[cod]
 logs/
 outputs/
+apps/ai_studio/var/
 lab3_rag/index/
 lab6_vl/samples/
 .cache/

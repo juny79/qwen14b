@@ -17,6 +17,7 @@
       <button class="tab active" data-panel="support">업무지원</button>
       <button class="tab" data-panel="media">이미지 생성·수정</button>
       <button class="tab" data-panel="video">동영상</button>
+      <button class="tab" data-panel="labs">실습 기능</button>
     </nav>
     <section id="support" class="panel active">
       <h2>문서 근거형 업무 도우미</h2>
@@ -54,13 +55,42 @@
       <form id="video-form">
         <label for="video-prompt">프롬프트</label><textarea id="video-prompt" rows="3" maxlength="2000" placeholder="장면과 움직임을 설명하세요" required></textarea>
         <label for="video-frames">길이 (24fps)</label>
-        <select id="video-frames"><option value="49">49프레임 · 약 2초</option><option value="81">81프레임 · 약 3.4초</option><option value="121">121프레임 · 약 5초</option></select>
+        <select id="video-frames"><option value="17">17프레임 · 약 0.7초</option><option value="49">49프레임 · 약 2초</option><option value="81">81프레임 · 약 3.4초</option></select>
         <label for="video-image">참조 이미지 (선택, 최대 12MB)</label><input id="video-image" type="file" accept="image/png,image/jpeg,image/webp">
         <label for="video-seed">Seed</label><input id="video-seed" type="number" value="42" min="0" max="2147483647">
         <button id="video-submit" class="primary" type="submit" disabled>GPU 작업 제출</button>
       </form>
       <div id="video-status" role="status"></div>
       <article id="video-result" class="result hidden"></article>
+    </section>
+    <section id="labs" class="panel">
+      <h2>모델 실습 기능</h2>
+      <p class="warning">아래 작업은 모델을 GPU에 올릴 수 있습니다. vLLM/다른 사용자 작업과 동시에 실행하지 말고, MIG 작업 상태를 먼저 확인하세요. 프로세스 내부 대기열은 별도 서버를 제어하지 않습니다.</p>
+      <form id="lab-form">
+        <label for="lab-action">실습 선택</label>
+        <select id="lab-action">
+          <option value="rag-index">RAG 문서 인덱스 재생성 (CPU 임베딩)</option>
+          <option value="vllm-api-test">vLLM API 연결 테스트 (서버 필요)</option>
+          <option value="infer">Qwen 14B 기본 추론</option>
+          <option value="qlora-train">Qwen 7B QLoRA 학습</option>
+          <option value="qlora-eval">QLoRA 베이스/어댑터 평가</option>
+          <option value="classify">업무 요청 분류 초안 (QLoRA)</option>
+          <option value="benchmark">vLLM 성능 측정 (vLLM 서버 필요)</option>
+          <option value="vl-receipt">VL 영수증 분석</option>
+        </select>
+        <div id="classify-input-wrap" class="hidden">
+          <label for="classify-request">업무 요청 (비민감 테스트 데이터만)</label>
+          <textarea id="classify-request" rows="3" maxlength="2000" placeholder="예: 출장 영수증은 언제까지 제출하나요?"></textarea>
+          <p class="warning">결과는 검토용 초안입니다. 자동 라우팅·결재·보안 조치는 수행하지 않습니다.</p>
+        </div>
+        <div id="lab-image-wrap" class="hidden">
+          <label for="lab-image">영수증 이미지 (최대 12MB, 비민감 자료만)</label>
+          <input id="lab-image" type="file" accept="image/png,image/jpeg,image/webp">
+        </div>
+        <button class="primary" type="submit">실습 작업 제출</button>
+      </form>
+      <div id="lab-status" role="status"></div>
+      <article id="lab-result" class="result hidden"></article>
     </section>
   </main>
   <footer>개발용 · localhost 전용 · SSO/문서 ACL/운영 GPU 스케줄러 미구현 · 민감 정보 업로드 금지</footer>

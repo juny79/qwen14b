@@ -1,0 +1,15 @@
+# Install into a dedicated app environment after establishing the CUDA-matched PyTorch build.
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+python-multipart>=0.0.9
+pydantic>=2.7,<3
+Pillow>=10,<12
+openai>=1.40,<3
+sentence-transformers>=3,<6
+faiss-cpu>=1.8
+# Diffusers pipelines require compatible versions of torch/transformers/accelerate.
+# Install/test these separately against the existing CUDA and lab environment.
+diffusers>=0.35
+transformers>=4.51
+accelerate>=1.0
+safetensors>=0.4
