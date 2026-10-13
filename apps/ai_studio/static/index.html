@@ -3,97 +3,170 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>사내 AI Studio · 개발 MVP</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <meta name="theme-color" content="#101828">
+  <title>AI Studio · 사내 AI 워크스페이스</title>
+  <link rel="stylesheet" href="/static/style.css?v=2">
 </head>
 <body>
-  <header>
-    <div><span class="eyebrow">LOCAL DEVELOPMENT MVP</span><h1>사내 AI Studio</h1>
-      <p>업무 문서 도우미와 생성형 미디어 도구를 기능별로 선택해 사용합니다.</p></div>
-    <span id="health" class="badge">연결 확인 중</span>
-  </header>
-  <main>
-    <nav class="tabs" aria-label="AI 기능 선택">
-      <button class="tab active" data-panel="support">업무지원</button>
-      <button class="tab" data-panel="media">이미지 생성·수정</button>
-      <button class="tab" data-panel="video">동영상</button>
-      <button class="tab" data-panel="labs">실습 기능</button>
-    </nav>
-    <section id="support" class="panel active">
-      <h2>문서 근거형 업무 도우미</h2>
-      <p class="note">현재 lab3_rag의 로컬 FAISS 인덱스와 localhost vLLM을 사용합니다. 비민감 샘플로만 시험하세요.</p>
-      <form id="chat-form">
-        <label for="question">질문</label>
-        <textarea id="question" rows="4" maxlength="4000" placeholder="예: 출장 숙박비 한도를 알려줘" required></textarea>
-        <button class="primary" type="submit">질문하기</button>
-      </form>
-      <div id="chat-status" role="status"></div>
-      <article id="chat-result" class="result hidden"></article>
-    </section>
-    <section id="media" class="panel">
-      <h2>이미지 생성 및 마스크 편집</h2>
-      <p class="note">이미지 생성은 FLUX.1-schnell, 지정 영역 수정은 SDXL Inpainting을 선택합니다. 한 프로세스 안에서 GPU 작업은 한 번에 하나씩 처리합니다.</p>
-      <label for="operation">작업 선택</label>
-      <select id="operation"><option value="generate">프롬프트로 이미지 생성 · FLUX.1-schnell</option><option value="inpaint">마스크 영역 수정 · SDXL Inpainting</option></select>
-      <form id="media-form">
-        <label for="prompt">프롬프트</label>
-        <textarea id="prompt" rows="3" maxlength="2000" placeholder="원하는 이미지 또는 수정 내용을 설명하세요" required></textarea>
-        <div id="upload-fields" class="hidden">
-          <label for="source">원본 이미지 (최대 12MB)</label><input id="source" type="file" accept="image/png,image/jpeg,image/webp">
-          <label for="mask">마스크 이미지 (흰색=수정, 검정=유지)</label><input id="mask" type="file" accept="image/png,image/jpeg,image/webp">
-        </div>
-        <label for="seed">Seed</label><input id="seed" type="number" value="42" min="0" max="2147483647">
-        <button class="primary" type="submit">GPU 작업 제출</button>
-      </form>
-      <div id="media-status" role="status"></div>
-      <article id="media-result" class="result hidden"></article>
-    </section>
-    <section id="video" class="panel">
-      <h2>짧은 동영상 생성</h2>
-      <p class="note">Wan2.2-TI2V-5B로 텍스트 또는 참조 이미지에서 새 영상을 만듭니다. 기존 영상의 시간축 일관성 편집 기능은 아닙니다.</p>
-      <p id="video-readiness" class="warning">Wan2.2 로컬 저장소 설정을 확인 중입니다.</p>
-      <form id="video-form">
-        <label for="video-prompt">프롬프트</label><textarea id="video-prompt" rows="3" maxlength="2000" placeholder="장면과 움직임을 설명하세요" required></textarea>
-        <label for="video-frames">길이 (24fps)</label>
-        <select id="video-frames"><option value="17">17프레임 · 약 0.7초</option><option value="49">49프레임 · 약 2초</option><option value="81">81프레임 · 약 3.4초</option></select>
-        <label for="video-image">참조 이미지 (선택, 최대 12MB)</label><input id="video-image" type="file" accept="image/png,image/jpeg,image/webp">
-        <label for="video-seed">Seed</label><input id="video-seed" type="number" value="42" min="0" max="2147483647">
-        <button id="video-submit" class="primary" type="submit" disabled>GPU 작업 제출</button>
-      </form>
-      <div id="video-status" role="status"></div>
-      <article id="video-result" class="result hidden"></article>
-    </section>
-    <section id="labs" class="panel">
-      <h2>모델 실습 기능</h2>
-      <p class="warning">아래 작업은 모델을 GPU에 올릴 수 있습니다. vLLM/다른 사용자 작업과 동시에 실행하지 말고, MIG 작업 상태를 먼저 확인하세요. 프로세스 내부 대기열은 별도 서버를 제어하지 않습니다.</p>
-      <form id="lab-form">
-        <label for="lab-action">실습 선택</label>
-        <select id="lab-action">
-          <option value="rag-index">RAG 문서 인덱스 재생성 (CPU 임베딩)</option>
-          <option value="vllm-api-test">vLLM API 연결 테스트 (서버 필요)</option>
-          <option value="infer">Qwen 14B 기본 추론</option>
-          <option value="qlora-train">Qwen 7B QLoRA 학습</option>
-          <option value="qlora-eval">QLoRA 베이스/어댑터 평가</option>
-          <option value="classify">업무 요청 분류 초안 (QLoRA)</option>
-          <option value="benchmark">vLLM 성능 측정 (vLLM 서버 필요)</option>
-          <option value="vl-receipt">VL 영수증 분석</option>
-        </select>
-        <div id="classify-input-wrap" class="hidden">
-          <label for="classify-request">업무 요청 (비민감 테스트 데이터만)</label>
-          <textarea id="classify-request" rows="3" maxlength="2000" placeholder="예: 출장 영수증은 언제까지 제출하나요?"></textarea>
-          <p class="warning">결과는 검토용 초안입니다. 자동 라우팅·결재·보안 조치는 수행하지 않습니다.</p>
-        </div>
-        <div id="lab-image-wrap" class="hidden">
-          <label for="lab-image">영수증 이미지 (최대 12MB, 비민감 자료만)</label>
-          <input id="lab-image" type="file" accept="image/png,image/jpeg,image/webp">
-        </div>
-        <button class="primary" type="submit">실습 작업 제출</button>
-      </form>
-      <div id="lab-status" role="status"></div>
-      <article id="lab-result" class="result hidden"></article>
-    </section>
-  </main>
-  <footer>개발용 · localhost 전용 · SSO/문서 ACL/운영 GPU 스케줄러 미구현 · 민감 정보 업로드 금지</footer>
-  <script src="/static/app.js" defer></script>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="AI Studio 홈">
+        <span class="brand-mark">A</span>
+        <span class="brand-copy"><strong>AI Studio</strong><small>사내 AI 워크스페이스</small></span>
+      </a>
+      <div class="sidebar-label">WORKSPACE</div>
+      <nav class="tabs sidebar-nav" aria-label="AI 기능 선택">
+        <button class="tab active" data-panel="support"><span class="nav-index">01</span><span>문서 도우미</span><span class="nav-arrow">›</span></button>
+        <button class="tab" data-panel="media"><span class="nav-index">02</span><span>이미지 스튜디오</span><span class="nav-arrow">›</span></button>
+        <button class="tab" data-panel="video"><span class="nav-index">03</span><span>동영상 생성</span><span class="nav-arrow">›</span></button>
+        <button class="tab" data-panel="labs"><span class="nav-index">04</span><span>모델 실험실</span><span class="nav-arrow">›</span></button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="environment-card">
+        <span class="environment-dot"></span>
+        <div><strong>개발 환경</strong><small>localhost · MIG GPU</small></div>
+      </div>
+      <div class="sidebar-health"><span class="health-led"></span><span id="health">서버 확인 중</span></div>
+      <div class="sidebar-foot">INTERNAL AI TOOLKIT <span>v0.1</span></div>
+    </aside>
+
+    <div class="main-column">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>워크스페이스</span><span class="crumb-divider">/</span><strong id="breadcrumb-current">문서 도우미</strong></div>
+        <div class="topbar-right"><span class="local-pill"><span></span> LOCAL PREVIEW</span><span class="avatar">AI</span></div>
+      </header>
+      <main class="content">
+        <section class="welcome-row">
+          <div>
+            <p class="eyebrow">사내 생성형 AI 도구</p>
+            <h1>업무를 더 선명하게,<br><span>AI와 함께.</span></h1>
+            <p class="welcome-copy">문서 기반 답변부터 이미지 생성과 모델 실험까지<br class="desktop-break"> 필요한 도구를 한곳에서 사용하세요.</p>
+          </div>
+          <div class="welcome-art" aria-hidden="true"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><div class="art-core">AI</div><span class="art-spark spark-one"></span><span class="art-spark spark-two"></span></div>
+        </section>
+
+        <section id="support" class="panel active" aria-labelledby="support-title">
+          <div class="section-heading">
+            <div><p class="section-kicker">01 / KNOWLEDGE ASSISTANT</p><h2 id="support-title">문서 도우미</h2><p class="section-description">사내 문서에서 근거를 찾아 답변하고, 참고한 출처를 함께 보여줍니다.</p></div>
+            <span class="model-chip"><span class="chip-dot"></span> RAG · vLLM</span>
+          </div>
+          <div class="content-grid support-grid">
+            <section class="surface-card question-card">
+              <div class="card-heading"><div><h3>무엇이 궁금하신가요?</h3><p>등록된 업무 문서를 바탕으로 질문하세요.</p></div><span class="step-badge">ASK</span></div>
+              <form id="chat-form">
+                <label for="question">질문</label>
+                <textarea id="question" rows="5" maxlength="4000" placeholder="예: 국내 출장 숙박비 한도와 영수증 제출 기한을 알려줘" required></textarea>
+                <div class="form-foot"><span class="field-hint">최대 4,000자 · 민감 정보 입력 금지</span><button class="primary" type="submit"><span>질문하기</span><span aria-hidden="true">→</span></button></div>
+              </form>
+              <div id="chat-status" class="status-line" role="status"></div>
+            </section>
+            <aside class="surface-card info-card">
+              <span class="info-icon">i</span><p class="section-kicker">HOW IT WORKS</p><h3>근거를 바탕으로<br>답변합니다</h3>
+              <p>질문과 관련된 문서 조각을 검색해 답변에 연결합니다. 근거를 찾지 못하면 답변을 보류합니다.</p>
+              <div class="info-rule"></div><div class="mini-meta"><span>검색 인덱스</span><strong>FAISS · 로컬</strong></div><div class="mini-meta"><span>답변 모델</span><strong>vLLM API</strong></div>
+            </aside>
+          </div>
+          <article id="chat-result" class="result answer-result hidden"></article>
+        </section>
+
+        <section id="media" class="panel" aria-labelledby="media-title">
+          <div class="section-heading">
+            <div><p class="section-kicker">02 / IMAGE STUDIO</p><h2 id="media-title">이미지 스튜디오</h2><p class="section-description">텍스트로 이미지를 만들거나, 마스크로 선택한 영역을 편집합니다.</p></div>
+            <span class="model-chip"><span class="chip-dot purple-dot"></span> FLUX · SDXL</span>
+          </div>
+          <div class="content-grid tool-grid">
+            <section class="surface-card form-card">
+              <div class="card-heading"><div><h3>새 작업 만들기</h3><p>작업 유형에 따라 입력 항목이 바뀝니다.</p></div></div>
+              <label for="operation">작업 유형</label>
+              <select id="operation"><option value="generate">텍스트로 이미지 생성 · FLUX.1-schnell</option><option value="inpaint">마스크 영역 편집 · SDXL Inpainting</option></select>
+              <form id="media-form">
+                <label for="prompt">프롬프트</label>
+                <textarea id="prompt" rows="4" maxlength="2000" placeholder="원하는 이미지 또는 편집 내용을 구체적으로 설명하세요" required></textarea>
+                <div id="upload-fields" class="conditional-fields hidden">
+                  <label for="source">원본 이미지 <span class="label-note">최대 12MB</span></label><input id="source" type="file" accept="image/png,image/jpeg,image/webp">
+                  <label for="mask">마스크 이미지 <span class="label-note">흰색은 수정 · 검정은 유지</span></label><input id="mask" type="file" accept="image/png,image/jpeg,image/webp">
+                </div>
+                <div class="form-row"><div><label for="seed">Seed</label><input id="seed" type="number" value="42" min="0" max="2147483647"></div><span class="field-hint">같은 seed로 재현 가능</span></div>
+                <button class="primary full-button" type="submit">GPU 작업 제출 <span aria-hidden="true">→</span></button>
+              </form>
+              <div id="media-status" class="status-line" role="status"></div>
+            </section>
+            <aside class="surface-card info-card accent-card">
+              <div class="accent-orb"></div><p class="section-kicker">CREATIVE TOOLS</p><h3>아이디어를<br>이미지로 바꾸세요</h3>
+              <p>이미지 생성과 마스크 편집은 GPU 작업 대기열에서 순차 처리됩니다. 첫 실행 시 모델 파일을 내려받을 수 있습니다.</p>
+              <div class="info-rule"></div><div class="mini-meta"><span>생성 모델</span><strong>FLUX.1-schnell</strong></div><div class="mini-meta"><span>편집 모델</span><strong>SDXL Inpainting</strong></div>
+            </aside>
+          </div>
+          <article id="media-result" class="result output-card hidden"></article>
+        </section>
+
+        <section id="video" class="panel" aria-labelledby="video-title">
+          <div class="section-heading">
+            <div><p class="section-kicker">03 / VIDEO LAB</p><h2 id="video-title">짧은 동영상 생성</h2><p class="section-description">텍스트 또는 참조 이미지에서 짧은 새 영상을 만듭니다.</p></div>
+            <span class="model-chip"><span class="chip-dot amber-dot"></span> WAN 2.2</span>
+          </div>
+          <p id="video-readiness" class="notice warning"><span class="notice-icon">!</span><span>Wan2.2 로컬 저장소 설정을 확인 중입니다.</span></p>
+          <div class="content-grid tool-grid">
+            <section class="surface-card form-card">
+              <div class="card-heading"><div><h3>영상 설정</h3><p>장면과 움직임을 자연어로 설명하세요.</p></div></div>
+              <form id="video-form">
+                <label for="video-prompt">프롬프트</label><textarea id="video-prompt" rows="4" maxlength="2000" placeholder="예: 바람에 나뭇잎이 천천히 흔들리는 숲속 오솔길" required></textarea>
+                <label for="video-frames">영상 길이 <span class="label-note">24fps 기준</span></label>
+                <select id="video-frames"><option value="17">약 0.7초 · 17 프레임</option><option value="49">약 2초 · 49 프레임</option><option value="81">약 3.4초 · 81 프레임</option></select>
+                <label for="video-image">참조 이미지 <span class="label-note">선택 · 최대 12MB</span></label><input id="video-image" type="file" accept="image/png,image/jpeg,image/webp">
+                <div class="form-row"><div><label for="video-seed">Seed</label><input id="video-seed" type="number" value="42" min="0" max="2147483647"></div><span class="field-hint">생성 시간이 오래 걸릴 수 있습니다</span></div>
+                <button id="video-submit" class="primary full-button" type="submit" disabled>동영상 작업 제출 <span aria-hidden="true">→</span></button>
+              </form>
+              <div id="video-status" class="status-line" role="status"></div>
+            </section>
+            <aside class="surface-card info-card video-info"><p class="section-kicker">TEXT / IMAGE TO VIDEO</p><h3>장면에 움직임을<br>더해 보세요</h3><p>Wan2.2 공식 저장소와 체크포인트가 설정된 경우에만 사용할 수 있습니다. 기존 동영상의 편집 기능은 아닙니다.</p><div class="info-rule"></div><div class="mini-meta"><span>모델</span><strong>Wan2.2-TI2V-5B</strong></div><div class="mini-meta"><span>출력</span><strong>짧은 MP4</strong></div></aside>
+          </div>
+          <article id="video-result" class="result output-card hidden"></article>
+        </section>
+
+        <section id="labs" class="panel" aria-labelledby="labs-title">
+          <div class="section-heading">
+            <div><p class="section-kicker">04 / MODEL PLAYGROUND</p><h2 id="labs-title">모델 실험실</h2><p class="section-description">실습 파이프라인을 작업 단위로 실행하고 결과를 내려받습니다.</p></div>
+            <span class="model-chip"><span class="chip-dot"></span> GPU JOBS</span>
+          </div>
+          <p class="notice warning"><span class="notice-icon">!</span><span>GPU 실습 전에 vLLM 및 다른 작업의 GPU 점유를 확인하세요. 이 페이지의 대기열은 별도 프로세스의 작업을 조정하지 않습니다.</span></p>
+          <div class="content-grid tool-grid">
+            <section class="surface-card form-card">
+              <div class="card-heading"><div><h3>실습 작업 제출</h3><p>선택한 파이프라인에 맞는 입력을 제공합니다.</p></div></div>
+              <form id="lab-form">
+                <label for="lab-action">실습 기능</label>
+                <select id="lab-action">
+                  <option value="rag-index">RAG 인덱스 생성 · CPU 임베딩</option>
+                  <option value="vllm-api-test">vLLM API 연결 테스트</option>
+                  <option value="infer">Qwen 14B 기본 추론</option>
+                  <option value="qlora-train">Qwen 7B QLoRA 학습</option>
+                  <option value="qlora-eval">QLoRA 어댑터 평가</option>
+                  <option value="classify">업무 요청 분류 초안</option>
+                  <option value="benchmark">vLLM 성능 측정</option>
+                  <option value="vl-receipt">VL 영수증 분석</option>
+                </select>
+                <div id="classify-input-wrap" class="conditional-fields hidden">
+                  <label for="classify-request">업무 요청 <span class="label-note">비민감 테스트 자료만</span></label>
+                  <textarea id="classify-request" rows="3" maxlength="2000" placeholder="예: 출장 영수증은 언제까지 제출하나요?"></textarea>
+                  <p class="inline-warning">분류는 검토용 초안입니다. 자동 라우팅이나 업무 조치에 사용하지 마세요.</p>
+                </div>
+                <div id="lab-image-wrap" class="conditional-fields hidden">
+                  <label for="lab-image">영수증 이미지 <span class="label-note">최대 12MB · 비민감 자료만</span></label>
+                  <input id="lab-image" type="file" accept="image/png,image/jpeg,image/webp">
+                </div>
+                <button class="primary full-button" type="submit">작업 제출 <span aria-hidden="true">→</span></button>
+              </form>
+              <div id="lab-status" class="status-line" role="status"></div>
+            </section>
+            <aside class="surface-card info-card lab-info"><p class="section-kicker">EXPERIMENT SAFELY</p><h3>작게 시작하고<br>결과를 확인하세요</h3><p>학습·추론은 GPU 메모리와 시간이 필요합니다. 소량 데이터의 점검 결과는 모델 품질이나 업무 적합성을 보장하지 않습니다.</p><div class="info-rule"></div><div class="mini-meta"><span>작업 상태</span><strong>대기 · 실행 · 완료</strong></div><div class="mini-meta"><span>저장 위치</span><strong>로컬 작업 폴더</strong></div></aside>
+          </div>
+          <article id="lab-result" class="result output-card hidden"></article>
+        </section>
+      </main>
+      <footer class="app-footer"><span>AI STUDIO · LOCAL DEVELOPMENT MVP</span><span>민감 정보 업로드 금지 · SSO/문서 ACL 미구현</span></footer>
+    </div>
+  </div>
+  <script src="/static/app.js?v=2" defer></script>
 </body>
 </html>
+

@@ -1,10 +1,12 @@
 const $ = (id) => document.getElementById(id);
 
+const panelNames = {support: "문서 도우미", media: "이미지 스튜디오", video: "동영상 생성", labs: "모델 실험실"};
 document.querySelectorAll(".tab").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll(".tab, .panel").forEach((node) => node.classList.remove("active"));
     button.classList.add("active");
     $(button.dataset.panel).classList.add("active");
+    $("breadcrumb-current").textContent = panelNames[button.dataset.panel] || "AI Studio";
   });
 });
 
@@ -15,9 +17,15 @@ $("operation").addEventListener("change", () => {
 async function checkHealth() {
   try {
     const response = await fetch("/api/health");
+    if (!response.ok) throw new Error("health check failed");
     const data = await response.json();
-    $("health").textContent = data.status === "development" ? "개발 서버 연결됨" : "확인 필요";
-  } catch { $("health").textContent = "서버 연결 실패"; }
+    const online = data.status === "development";
+    $("health").textContent = online ? "서비스 연결됨" : "상태 확인 필요";
+    $("health").parentElement.classList.toggle("is-online", online);
+  } catch {
+    $("health").textContent = "서버 연결 실패";
+    $("health").parentElement.classList.remove("is-online");
+  }
 }
 
 $("chat-form").addEventListener("submit", async (event) => {
@@ -45,7 +53,9 @@ async function pollJob(jobId, statusId = "media-status", resultId = "media-resul
   const poll = async () => {
     const response = await fetch(`/api/jobs/${jobId}`);
     const job = await response.json();
-    status.textContent = `작업 ${job.id}: ${job.status}${job.error ? ` · ${job.error}` : ""}`;
+    const labels = {queued: "대기 중", running: "실행 중", succeeded: "완료", failed: "실패"};
+    status.dataset.state = job.status;
+    status.textContent = `작업 ${job.id}: ${labels[job.status] || job.status}${job.error ? ` · ${job.error}` : ""}`;
     if (job.status === "succeeded") {
       result.replaceChildren();
       if (["result.png", "result.mp4"].includes(job.result_name)) {
