@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+const appUrl = (path) => new URL(path.replace(/^\/+/, ""), new URL("./", document.baseURI)).toString();
 
 const panelNames = {support: "문서 도우미", media: "이미지 스튜디오", video: "동영상 생성", labs: "모델 실험실"};
 document.querySelectorAll(".tab").forEach((button) => {
@@ -16,7 +17,7 @@ $("operation").addEventListener("change", () => {
 
 async function checkHealth() {
   try {
-    const response = await fetch("/api/health");
+    const response = await fetch(appUrl("api/health"));
     if (!response.ok) throw new Error("health check failed");
     const data = await response.json();
     const online = data.status === "development";
@@ -35,7 +36,7 @@ $("chat-form").addEventListener("submit", async (event) => {
   status.textContent = "검색 및 답변 생성 중…";
   result.classList.add("hidden");
   try {
-    const response = await fetch("/api/support/chat", {
+    const response = await fetch(appUrl("api/support/chat"), {
       method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({question: $("question").value, top_k: 3})
     });
@@ -51,7 +52,7 @@ async function pollJob(jobId, statusId = "media-status", resultId = "media-resul
   const status = $(statusId);
   const result = $(resultId);
   const poll = async () => {
-    const response = await fetch(`/api/jobs/${jobId}`);
+    const response = await fetch(appUrl(`api/jobs/${jobId}`));
     const job = await response.json();
     const labels = {queued: "대기 중", running: "실행 중", succeeded: "완료", failed: "실패"};
     status.dataset.state = job.status;
@@ -60,18 +61,18 @@ async function pollJob(jobId, statusId = "media-status", resultId = "media-resul
       result.replaceChildren();
       if (["result.png", "result.mp4"].includes(job.result_name)) {
         const preview = job.result_name.endsWith(".mp4") ? document.createElement("video") : document.createElement("img");
-        preview.src = `${job.result}?t=${Date.now()}`;
+        preview.src = `${appUrl(job.result)}?t=${Date.now()}`;
         if (preview.tagName === "VIDEO") { preview.controls = true; preview.playsInline = true; }
         else preview.alt = "생성 결과";
         result.append(preview);
       } else if (["classification.json", "infer_results.json"].includes(job.result_name)) {
-        const response = await fetch(job.result);
+        const response = await fetch(appUrl(job.result));
         const preview = document.createElement("pre");
         preview.textContent = await response.text();
         result.append(preview);
       }
       const link = document.createElement("a");
-      link.href = job.result;
+      link.href = appUrl(job.result);
       link.download = job.result_name || "ai-studio-result";
       link.textContent = `결과 다운로드 (${job.result_name || "파일"})`;
       result.append(link);
@@ -97,7 +98,7 @@ $("media-form").addEventListener("submit", async (event) => {
   status.textContent = "GPU 작업 대기 중…";
   result.classList.add("hidden");
   try {
-    const response = await fetch("/api/media/image", {method: "POST", body: form});
+    const response = await fetch(appUrl("api/media/image"), {method: "POST", body: form});
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "작업 제출 실패");
     await pollJob(data.id);
@@ -114,7 +115,7 @@ $("video-form").addEventListener("submit", async (event) => {
   $("video-status").textContent = "동영상 GPU 작업 대기 중…";
   $("video-result").classList.add("hidden");
   try {
-    const response = await fetch("/api/media/video", {method: "POST", body: form});
+    const response = await fetch(appUrl("api/media/video"), {method: "POST", body: form});
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "작업 제출 실패");
     await pollJob(data.id, "video-status", "video-result");
@@ -136,7 +137,7 @@ $("lab-form").addEventListener("submit", async (event) => {
   $("lab-status").textContent = "실습 작업 대기 중…";
   $("lab-result").classList.add("hidden");
   try {
-    const response = await fetch("/api/labs/run", {method: "POST", body: form});
+    const response = await fetch(appUrl("api/labs/run"), {method: "POST", body: form});
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || "작업 제출 실패");
     await pollJob(data.id, "lab-status", "lab-result");
@@ -145,7 +146,7 @@ $("lab-form").addEventListener("submit", async (event) => {
 
 async function loadFeatures() {
   try {
-    const response = await fetch("/api/features");
+    const response = await fetch(appUrl("api/features"));
     const data = await response.json();
     const video = data.models.find((model) => model.key === "wan22-ti2v");
     $("video-submit").disabled = !video?.enabled;
