@@ -37,7 +37,13 @@ app.mount("/static", StaticFiles(directory=APP_DIR / "static"), name="static")
 _jobs: dict[str, dict[str, Any]] = {}
 _jobs_lock = threading.Lock()
 _gpu_lock = threading.Lock()
+_gpu_state_lock = threading.Lock()
+_gpu_enabled = False
 _executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="gpu-job")
+
+
+class GpuSettings(BaseModel):
+    enabled: bool
 
 
 class ChatRequest(BaseModel):
@@ -54,12 +60,24 @@ def set_job(job_id: str, **fields: Any) -> None:
         _jobs[job_id].update(fields, updated_at=now())
 
 
-def submit_gpu_job(job_id: str, worker, *args) -> None:
+def gpu_is_enabled() -> bool:
+    with _gpu_state_lock:
+        return _gpu_enabled
+
+
+def require_gpu_enabled() -> None:
+    if not gpu_is_enabled():
+        raise HTTPException(status_code=409, detail="웹앱에서 GPU 사용을 먼저 허용하세요.")
+
+
+def submit_gpu_job(job_id: str, worker, *args, requires_gpu: bool = True) -> None:
     def run() -> None:
-        set_job(job_id, status="running", started_at=now())
         try:
             # This lock only serializes jobs in this process, not a separate vLLM server.
             with _gpu_lock:
+                if requires_gpu and not gpu_is_enabled():
+                    raise RuntimeError("GPU 사용이 비활성화되어 작업을 시작하지 않았습니다.")
+                set_job(job_id, status="running", started_at=now())
                 output = worker(*args)
             set_job(job_id, status="succeeded", result=f"/api/jobs/{job_id}/result",
                     result_name=Path(output).name)
@@ -76,6 +94,20 @@ def home():
 @app.get("/api/health")
 def health():
     return {"status": "development", "note": "Local-only prototype; no SSO/ACL or cross-process GPU lock."}
+
+
+@app.get("/api/gpu")
+def get_gpu_setting():
+    return {"enabled": gpu_is_enabled(), "scope": "AI Studio requests only; does not control external GPU processes"}
+
+
+@app.put("/api/gpu")
+def set_gpu_setting(settings: GpuSettings):
+    global _gpu_enabled
+    with _gpu_state_lock:
+        _gpu_enabled = settings.enabled
+    return {"enabled": settings.enabled,
+            "note": "Turning GPU off blocks new app jobs; it does not stop a job already running."}
 
 
 @app.get("/api/features")
@@ -130,6 +162,7 @@ def wan_video_worker(prompt: str, image_path: Path | None, output_path: Path,
 @app.post("/api/media/video")
 async def create_video_job(prompt: str = Form(...), seed: int = Form(42),
                            frame_num: int = Form(49), image: UploadFile | None = File(default=None)):
+    require_gpu_enabled()
     prompt = prompt.strip()
     if not prompt or len(prompt) > 2000:
         raise HTTPException(status_code=400, detail="Prompt must contain 1-2000 characters")
@@ -182,6 +215,7 @@ def run_rag(question: str, top_k: int) -> dict[str, Any]:
 
 @app.post("/api/support/chat")
 async def support_chat(request: ChatRequest):
+    require_gpu_enabled()
     try:
         return await asyncio.to_thread(run_rag, request.question, request.top_k)
     except Exception as exc:
@@ -243,6 +277,7 @@ async def save_upload(upload: UploadFile, path: Path) -> None:
 async def create_image_job(operation: str = Form(...), prompt: str = Form(...),
                            seed: int = Form(42), image: UploadFile | None = File(default=None),
                            mask: UploadFile | None = File(default=None)):
+    require_gpu_enabled()
     prompt = prompt.strip()
     if not prompt or len(prompt) > 2000:
         raise HTTPException(status_code=400, detail="Prompt must contain 1-2000 characters")
@@ -284,6 +319,8 @@ async def create_lab_job(action: str = Form(...), request_text: str = Form(""),
     allowed = {"rag-index", "vllm-api-test", "infer", "qlora-train", "qlora-eval", "classify", "benchmark", "vl-receipt"}
     if action not in allowed:
         raise HTTPException(status_code=400, detail="지원하지 않는 실습 기능입니다.")
+    if action != "rag-index":
+        require_gpu_enabled()
     if action == "vl-receipt" and image is None:
         raise HTTPException(status_code=400, detail="VL 영수증 분석에는 이미지가 필요합니다.")
     request_text = request_text.strip()
@@ -306,7 +343,8 @@ async def create_lab_job(action: str = Form(...), request_text: str = Form(""),
            "created_at": now(), "updated_at": now()}
     with _jobs_lock:
         _jobs[job_id] = job
-    submit_gpu_job(job_id, run_lab, action, folder, image_path, request_text or None)
+    submit_gpu_job(job_id, run_lab, action, folder, image_path, request_text or None,
+                   requires_gpu=action != "rag-index")
     return job
 
 

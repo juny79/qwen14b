@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101828">
   <title>AI Studio · 사내 AI 워크스페이스</title>
   <base href="./">
-  <link rel="stylesheet" href="static/style.css?v=3">
+  <link rel="stylesheet" href="static/style.css?v=4">
 </head>
 <body>
   <div class="app-shell">
@@ -34,7 +34,7 @@
     <div class="main-column">
       <header class="topbar">
         <div class="breadcrumbs"><span>워크스페이스</span><span class="crumb-divider">/</span><strong id="breadcrumb-current">문서 도우미</strong></div>
-        <div class="topbar-right"><span class="local-pill"><span></span> LOCAL PREVIEW</span><span class="avatar">AI</span></div>
+        <div class="topbar-right"><button id="gpu-toggle" class="gpu-toggle" type="button" aria-pressed="false" title="앱의 GPU 사용 작업 허용 여부를 설정합니다">GPU: 차단</button><span class="local-pill"><span></span> LOCAL PREVIEW</span><span class="avatar">AI</span></div>
       </header>
       <main class="content">
         <section class="welcome-row">
@@ -167,7 +167,7 @@
       <footer class="app-footer"><span>AI STUDIO · LOCAL DEVELOPMENT MVP</span><span>민감 정보 업로드 금지 · SSO/문서 ACL 미구현</span></footer>
     </div>
   </div>
-  <script src="static/app.js?v=3" defer></script>
+  <script src="static/app.js?v=4" defer></script>
 </body>
 </html>
 

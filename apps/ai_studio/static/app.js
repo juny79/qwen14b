@@ -1,5 +1,53 @@
 const $ = (id) => document.getElementById(id);
 const appUrl = (path) => new URL(path.replace(/^\/+/, ""), new URL("./", document.baseURI)).toString();
+let gpuEnabled = false;
+let videoAvailable = false;
+
+function updateGpuControls() {
+  const toggle = $("gpu-toggle");
+  toggle.textContent = gpuEnabled ? "GPU 작업 허용: ON" : "GPU 작업 허용: OFF";
+  toggle.setAttribute("aria-pressed", String(gpuEnabled));
+  toggle.classList.toggle("is-enabled", gpuEnabled);
+  $("chat-form").querySelector('button[type="submit"]').disabled = !gpuEnabled;
+  $("media-form").querySelector('button[type="submit"]').disabled = !gpuEnabled;
+  $("video-submit").disabled = !gpuEnabled || !videoAvailable;
+  $("lab-form").querySelector('button[type="submit"]').disabled =
+    !gpuEnabled && $("lab-action").value !== "rag-index";
+}
+
+async function loadGpuSetting() {
+  try {
+    const response = await fetch(appUrl("api/gpu"));
+    if (!response.ok) throw new Error("GPU 상태를 읽을 수 없습니다.");
+    const data = await response.json();
+    gpuEnabled = data.enabled === true;
+  } catch {
+    gpuEnabled = false;
+  }
+  updateGpuControls();
+}
+
+$("gpu-toggle").addEventListener("click", async () => {
+  const enabled = !gpuEnabled;
+  if (enabled && !window.confirm("AI Studio에서 GPU를 사용하는 새 작업을 허용할까요? 외부 프로세스의 GPU 사용은 제어하지 않습니다.")) return;
+  const toggle = $("gpu-toggle");
+  toggle.disabled = true;
+  try {
+    const response = await fetch(appUrl("api/gpu"), {
+      method: "PUT",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({enabled})
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "GPU 설정을 저장하지 못했습니다.");
+    gpuEnabled = data.enabled === true;
+    updateGpuControls();
+  } catch (error) {
+    window.alert(error.message);
+  } finally {
+    toggle.disabled = false;
+  }
+});
 
 const panelNames = {support: "문서 도우미", media: "이미지 스튜디오", video: "동영상 생성", labs: "모델 실험실"};
 document.querySelectorAll(".tab").forEach((button) => {
@@ -125,6 +173,7 @@ $("video-form").addEventListener("submit", async (event) => {
 $("lab-action").addEventListener("change", () => {
   $("lab-image-wrap").classList.toggle("hidden", $("lab-action").value !== "vl-receipt");
   $("classify-input-wrap").classList.toggle("hidden", $("lab-action").value !== "classify");
+  updateGpuControls();
 });
 
 $("lab-form").addEventListener("submit", async (event) => {
@@ -149,7 +198,8 @@ async function loadFeatures() {
     const response = await fetch(appUrl("api/features"));
     const data = await response.json();
     const video = data.models.find((model) => model.key === "wan22-ti2v");
-    $("video-submit").disabled = !video?.enabled;
+    videoAvailable = video?.enabled === true;
+    updateGpuControls();
     $("video-readiness").textContent = video?.enabled
       ? "Wan2.2 저장소와 체크포인트가 설정되었습니다. 모델 처리에는 시간이 걸릴 수 있습니다."
       : "Wan2.2 공식 저장소와 체크포인트 경로를 설정해야 사용할 수 있습니다.";
@@ -158,3 +208,4 @@ async function loadFeatures() {
 
 checkHealth();
 loadFeatures();
+loadGpuSetting();
