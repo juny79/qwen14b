@@ -20,19 +20,45 @@ GPU 작업은 이 웹 프로세스 안에서 한 번에 하나씩 실행되고 �
 - 이 저장소의 `.venv-infer`가 없거나 패키지 조합을 변경하기 싫다면 별도 가상환경에서 CUDA 호환 PyTorch를 구성한 뒤 `requirements-web.txt`를 설치합니다. requirements는 PyTorch/CUDA wheel을 강제로 선택하지 않습니다.
 - `lab3_rag/index/`를 준비하고 OpenAI-compatible vLLM을 `127.0.0.1:8000`에서 실행해야 업무지원 채팅이 동작합니다. 임베딩만 확인하고 vLLM이 없으면 채팅 API는 오류를 반환합니다.
 
+## 인증 및 환경 설정
+
+Hugging Face 접근 토큰은 `.env`에 저장하지 않습니다. 모델 페이지에서 접근 조건에 동의하고 계정 권한을 받은 뒤, 같은 Linux 사용자 계정으로 Hugging Face CLI에 로그인합니다. 토큰은 Hugging Face 사용자 캐시에 저장되며, AI Studio도 같은 사용자로 실행해야 이를 사용할 수 있습니다.
+
+```bash
+.venv-vllm/bin/hf auth login
+```
+
+앱과 로컬 vLLM의 실행 설정은 프로젝트 루트 `.env`에 둘 수 있습니다. 아래는 예시이며 `VLLM_API_KEY`를 임의의 비밀 값으로 교체하세요. Hugging Face 토큰이나 실제 비밀 키를 문서·채팅에 붙여 넣지 마세요.
+
+```dotenv
+AI_STUDIO_HOST=127.0.0.1
+AI_STUDIO_PORT=8081
+OPENAI_BASE_URL=http://127.0.0.1:8000/v1
+SERVED_MODEL_NAME=qwen14b
+VLLM_PORT=8000
+VLLM_API_KEY=replace-with-a-private-local-secret
+QWEN_MODEL=Qwen/Qwen2.5-14B-Instruct
+MAX_MODEL_LEN=4096
+MAX_NUM_SEQS=2
+GPU_MEMORY_UTILIZATION=0.90
+```
+
+`run_ai_studio.sh`와 `serve_qwen14b.sh`가 이 설정을 읽습니다. 명시적으로 셸에서 설정한 환경변수는 `.env` 값보다 우선합니다. 저장소의 `.gitignore`는 `.env`를 제외하지만, 파일 권한도 제한하세요.
+
+```bash
+chmod 600 .env
+```
+
+`.env`는 간단한 `KEY=value` 형식으로 작성하고, 위 allow-list에 없는 변수나 셸 명령은 로드되지 않습니다. Hugging Face 토큰은 저장소에 추가하지 않습니다.
+
 ## 실행
 
 ```bash
-# 가상환경 활성화 후; PyTorch의 CUDA 조합을 확인한 다음 웹 의존성을 설치
-python -m pip install -r apps/ai_studio/requirements-web.txt
-
 # 새 터미널에서 실행: 외부 네트워크에 바인딩하지 않음
-export OPENAI_BASE_URL=http://127.0.0.1:8000/v1
-export SERVED_MODEL_NAME=qwen14b
-uvicorn apps.ai_studio.app:app --host 127.0.0.1 --port 8080
+bash scripts/run_ai_studio.sh
 ```
 
-브라우저는 `http://127.0.0.1:8080`을 엽니다. API 점검은 `/api/health`, `/api/features`에서 합니다. 첫 모델 호출은 가중치 다운로드와 초기 로딩으로 오래 걸릴 수 있습니다.
+브라우저는 `AI_STUDIO_PORT` 설정값(기본값 `8080`)의 localhost 프록시 주소를 엽니다. API 점검은 `/api/health`, `/api/features`에서 합니다. 첫 모델 호출은 가중치 다운로드와 초기 로딩으로 오래 걸릴 수 있습니다.
 
 ## 웹앱 기능 사용
 
