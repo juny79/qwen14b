@@ -2,6 +2,8 @@
 # 로컬 전용 AI Studio를 실행합니다. GPU 작업은 사용자가 별도로 관리하세요.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/load_env.sh
+load_project_env .env
 
 HOST="${AI_STUDIO_HOST:-127.0.0.1}"
 PORT="${AI_STUDIO_PORT:-8080}"
@@ -20,6 +22,7 @@ fi
 
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-http://127.0.0.1:8000/v1}"
 export SERVED_MODEL_NAME="${SERVED_MODEL_NAME:-qwen14b}"
+export VLLM_API_KEY="${VLLM_API_KEY:-lab-secret-change-me}"
 echo "AI Studio: http://$HOST:$PORT"
 echo "외부 GPU 프로세스/vLLM 작업과의 조정은 수동으로 확인해야 합니다."
 exec "$PYTHON" -m uvicorn apps.ai_studio.app:app --host "$HOST" --port "$PORT"

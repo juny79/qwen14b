@@ -6,6 +6,8 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
+source scripts/load_env.sh
+load_project_env .env
 
 if [ ! -x .venv-vllm/bin/vllm ]; then
   echo "[실패] vLLM 환경이 없습니다. 먼저 bash scripts/setup_vllm_env.sh 를 실행하세요."
