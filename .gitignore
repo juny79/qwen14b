@@ -1,12 +1,84 @@
-.venv-infer/
-.venv-vllm/
+# Python virtual environments (at the repository root or nested under project folders)
+**/.venv/
+**/.venv*/
+**/venv/
+**/venv-*/
+**/env/
+**/env-*/
+**/virtualenv/
+**/virtualenv-*/
+**/pyenv/
+**/conda-env/
+**/conda_env/
+**/envs/
+**/miniconda*/
+**/anaconda*/
+**/__pypackages__/
+**/site-packages/
+**/dist-packages/
+
+# Known local environments used by this project
+/.venv-ai-studio/
+/.venv-doc-assistant/
+/.venv-image-studio/
+/.venv-infer/
+/.venv-vllm/
+/.venv-wan/
+
+# Python caches and test/tool artifacts
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local secrets and environment settings
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Logs, generated results, and local application state
 logs/
 outputs/
+results/
 apps/ai_studio/var/
 lab3_rag/index/
+lab5_bench/results/
 lab6_vl/samples/
+
+# Local datasets and downloaded models/checkpoints
+/datasets/
+models/
+checkpoints/
+pretrained/
 .cache/
-.env
-/datasets
+hf_cache/
+
+# Large model weights and generated media/artifacts
+*.safetensors
+*.ckpt
+*.pth
+*.pt
+*.onnx
+*.gguf
+*.ggml
+*_smoke.mp4
+
+# Build and package-manager artifacts
+build/
+dist/
+node_modules/
+
+# OS/editor temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.tmp
+*.log
+*.pid
+!.gitkeep
+!.keep
