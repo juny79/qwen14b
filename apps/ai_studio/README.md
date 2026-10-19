@@ -43,9 +43,10 @@ MAX_NUM_SEQS=2
 GPU_MEMORY_UTILIZATION=0.90
 WAN22_REPO=/absolute/path/to/Wan2.2
 WAN22_CKPT=/absolute/path/to/Wan2.2-TI2V-5B
+WAN22_PYTHON=/absolute/path/to/Wan2.2/.venv-wan/bin/python
 ```
 
-`run_ai_studio.sh`와 `serve_qwen14b.sh`가 이 설정을 읽습니다. `WAN22_REPO`는 공식 Wan2.2 저장소에서 `generate.py`가 있는 디렉터리이고, `WAN22_CKPT`는 TI2V-5B 체크포인트 디렉터리입니다. 이 두 경로 변수를 `.env`에서 사용하도록 `scripts/load_env.sh`의 allow-list에 등록되어 있어야 합니다. 명시적으로 셸에서 설정한 환경변수는 `.env` 값보다 우선합니다. 저장소의 `.gitignore`는 `.env`를 제외하지만, 파일 권한도 제한하세요.
+`run_ai_studio.sh`가 이 설정을 읽습니다. `WAN22_REPO`는 `generate.py`가 있는 Wan2.2 저장소, `WAN22_CKPT`는 TI2V-5B 체크포인트, `WAN22_PYTHON`은 Wan2.2 의존성(특히 PyTorch와 FlashAttention 2)이 설치된 실행 Python입니다. AI Studio 자체의 Python과 Wan2.2 Python은 달라도 되며, 동영상 worker는 `WAN22_PYTHON`으로 생성기를 실행합니다. 셸에서 명시한 환경변수는 `.env` 값보다 우선합니다. `.env`는 Git에 추가하지 말고 파일 권한도 제한하세요.
 
 ```bash
 chmod 600 .env
@@ -68,7 +69,7 @@ bash scripts/run_ai_studio.sh
 
 `이미지 생성·수정` 탭은 GPU 작업 허용 스위치가 켜져 있을 때 FLUX.1-schnell (4 steps, CPU offload)과 SDXL Inpainting (1024×1024, 흰색 마스크 영역 수정)을 제출할 수 있습니다. 스위치는 앱 내부의 작업 제출을 통제할 뿐, GPU 프로세스 종료나 외부 작업 조정 기능은 아닙니다.
 
-`동영상` 탭은 Wan2.2 공식 저장소와 TI2V-5B 체크포인트의 로컬 경로가 설정되어야 활성화됩니다. 프로젝트 `.env`에 `WAN22_REPO`와 `WAN22_CKPT`를 설정하고 AI Studio를 재시작하세요. 공식 저장소의 Python 의존성은 AI Studio가 실제 사용하는 Python 환경에 설치되어 있어야 합니다. 저장소의 requirements가 PyTorch/CUDA 버전을 바꿀 수 있으므로, 현재 공유 가상환경에 그대로 설치하지 말고 먼저 CUDA·PyTorch 호환성을 확인하세요. 앱은 `generate.py`를 `ti2v-5B`, `1280*704`, CPU offload 옵션으로 실행합니다. 첫 작업은 체크포인트 로딩에 오래 걸릴 수 있으며, 3g.40gb MIG에서의 실제 성능과 메모리 여유는 별도로 검증해야 합니다. 동영상은 새 T2V/I2V 생성이며 기존 영상의 시간축 일관성을 유지해 편집하는 기능은 아닙니다.
+`동영상` 탭은 Wan2.2 저장소·체크포인트·Python 경로가 설정되어야 활성화됩니다. `.env`에 `WAN22_REPO`, `WAN22_CKPT`, `WAN22_PYTHON`을 설정하고 AI Studio를 재시작하세요. `WAN22_PYTHON`은 최소한 `torch`와 `flash_attn`을 import할 수 있어야 합니다. 앱은 작업 시작 전에 이 두 모듈을 검사하고, Wan2.2 생성기를 지정된 Python으로 실행합니다. 기본 크기는 `1280*704`이며, 첫 로딩은 오래 걸릴 수 있습니다. 다른 GPU 작업을 종료하고 짧은 17프레임 테스트부터 시작하세요. 3g.40gb MIG에서의 실제 성능과 메모리 여유는 별도로 검증해야 합니다. 동영상은 새 T2V/I2V 생성이며 기존 영상 편집 기능은 아닙니다.
 
 RAG 채팅에는 기존 `lab3_rag` 인덱스 및 로컬 vLLM이 필요합니다. 실습 작업에서 vLLM API 테스트/벤치마크를 실행하려면 API 서버가 별도로 실행 중이어야 합니다. QLoRA 학습·평가, HF 추론 및 VL 작업 전에는 vLLM 및 다른 GPU 프로세스를 사용자가 직접 종료하고 GPU가 비어 있는지 확인하세요. 앱 내 대기열은 별도 vLLM 프로세스나 다른 사용자의 GPU 점유를 감지·조정하지 않습니다.
 

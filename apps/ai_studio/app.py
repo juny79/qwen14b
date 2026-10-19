@@ -114,9 +114,12 @@ def set_gpu_setting(settings: GpuSettings):
 def features():
     repo_value = os.getenv("WAN22_REPO", "")
     ckpt_value = os.getenv("WAN22_CKPT", "")
-    wan_repo = Path(repo_value) if repo_value else Path("/__wan_repo_not_configured__")
-    wan_ckpt = Path(ckpt_value) if ckpt_value else Path("/__wan_ckpt_not_configured__")
-    wan_ready = (wan_repo / "generate.py").is_file() and wan_ckpt.is_dir()
+    python_value = os.getenv("WAN22_PYTHON", sys.executable)
+    wan_repo = Path(repo_value).expanduser() if repo_value else Path("/__wan_repo_not_configured__")
+    wan_ckpt = Path(ckpt_value).expanduser() if ckpt_value else Path("/__wan_ckpt_not_configured__")
+    wan_python = Path(python_value).expanduser()
+    wan_ready = ((wan_repo / "generate.py").is_file() and wan_ckpt.is_dir()
+                 and wan_python.is_file() and os.access(wan_python, os.X_OK))
     return {"support": True, "labs": [
         {"key": "rag-index", "enabled": True},
         {"key": "vllm-api-test", "enabled": True},
@@ -139,9 +142,20 @@ def wan_video_worker(prompt: str, image_path: Path | None, output_path: Path,
     repo = Path(os.getenv("WAN22_REPO", "")).resolve()
     checkpoint = Path(os.getenv("WAN22_CKPT", "")).resolve()
     script = repo / "generate.py"
+    python_value = os.getenv("WAN22_PYTHON", sys.executable)
+    # Keep the virtualenv's bin/python path intact; resolving its symlink can
+    # launch the system interpreter and lose the virtualenv site-packages.
+    wan_python = Path(python_value).expanduser().absolute()
     if not script.is_file() or not checkpoint.is_dir():
         raise RuntimeError("Set WAN22_REPO and WAN22_CKPT to approved local Wan2.2 paths")
-    command = [sys.executable, str(script), "--task", "ti2v-5B",
+    if not wan_python.is_file() or not os.access(wan_python, os.X_OK):
+        raise RuntimeError(f"WAN22_PYTHON is not an executable Python: {wan_python}")
+    probe = subprocess.run([str(wan_python), "-c", "import torch, flash_attn"],
+                           cwd=repo, capture_output=True, text=True, check=False)
+    if probe.returncode:
+        detail = (probe.stderr or probe.stdout)[-1200:]
+        raise RuntimeError(f"WAN22_PYTHON must import torch and flash_attn: {detail}")
+    command = [str(wan_python), str(script), "--task", "ti2v-5B",
                "--size", "1280*704", "--ckpt_dir", str(checkpoint),
                "--offload_model", "True", "--convert_model_dtype", "--t5_cpu",
                "--prompt", prompt, "--frame_num", str(frame_num),
